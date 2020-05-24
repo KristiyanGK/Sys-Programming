@@ -1,19 +1,25 @@
 #include <stdio.h> 
+#include <stdlib.h>
 #include "server.h"
-
-#define DEFAULT_PORT 10000
 
 /*
     cmd arguments: 
-    [1] port - number or 'default' for DEFAULT_PORT
+    [1] port - number
 */
 int main(int argc, char *argv[]) {
     int serverfd, maxCon;
     Status result;
 
+    if (argc != 2)
+    {
+        printf("Invalid args count!\n");
+        return 0;
+    }
+    
+
     printf("Creating server...\n");
 
-    result = create_server(DEFAULT_PORT, &serverfd);
+    result = create_server(atoi(argv[1]), &serverfd);
 
     if (result < 0) {
         printf("status: %d\n", result);

@@ -7,23 +7,32 @@
 #include "coordinates.h"
 #include "client.h"
 
-#define PORT 10000
-#define SERVER_ADDRESS "127.0.0.1"
-
+// private function declarations
 void receive_struct(coordinates* data);
 void end_communication();
 void setup_sigaction();
 void handle_sigint(int sig);
 
+// global variables
 int sockfd;
 
+/*
+    cmd arguments: 
+    [1] adress - string
+    [2] port - number
+*/
 int main(int argc, char *argv[]) {
     char command[BUFF_SIZE];
     coordinates data = {0};
 
+    if (argc != 3)
+    {
+        printf("Invalid args count!\n");
+    }
+
     setup_sigaction();
 
-    sockfd = setup_connection(SERVER_ADDRESS, PORT);
+    sockfd = setup_connection(argv[1], atoi(argv[2]));
 
     for (;;) {
         memset(&command, 0, sizeof(command));
@@ -50,6 +59,8 @@ int main(int argc, char *argv[]) {
     
     return 0;
 }
+
+// private function definitions
 
 void receive_struct(coordinates* data) {
     char buffer[BUFF_SIZE];
