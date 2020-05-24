@@ -13,7 +13,8 @@ typedef enum Status_Enum {
     E_FAILED_SOCKET_CREATION = -2,
     E_FAILED_BINDING = -3,
     E_FAILED_LISTENING = -4,
-    E_FAILED_SERVER_ACCEPT = -5
+    E_FAILED_SERVER_ACCEPT = -5,
+    E_FAILED_MUTEX_INIT = -6
 } Status;
 
 // functions

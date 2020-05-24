@@ -16,6 +16,7 @@ void *handle_connection(void* input);
 
 // global variables
 coordinates data = {0};
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 // public functions definitions
 
@@ -52,6 +53,11 @@ int start_listening(int serverfd, int maxConn) {
     struct sockaddr_in cli;
     pthread_t thread;
 
+    if (pthread_mutex_init(&lock, NULL) != 0) {
+        perror("");
+        return E_FAILED_MUTEX_INIT;
+    }
+
     if((listen(serverfd, maxConn)) != 0) {
         perror("");
         return E_FAILED_LISTENING;
@@ -74,6 +80,8 @@ int start_listening(int serverfd, int maxConn) {
         pthread_create(&thread, NULL, handle_connection, (void *)&connfd);
     }
 
+    pthread_mutex_destroy(&lock);
+
     return E_SUCCESS;
 }
 
@@ -88,8 +96,11 @@ void *handle_connection(void* input) {
         recv(clientfd, buffer, BUFF_SIZE, 0);
 
         if (strcmp(buffer, GET) == 0) {
+            pthread_mutex_lock(&lock);
             data.x = random_int();
             data.y = random_int();
+            pthread_mutex_unlock(&lock);
+            
             printf("Server sending struct with values: x=%d, y=%d to %d\n", data.x, data.y, clientfd);
 
             xSend = htonl(data.x);
