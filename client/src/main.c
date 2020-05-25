@@ -12,6 +12,7 @@ void receive_struct(coordinates* data);
 void end_communication();
 void setup_sigaction();
 void handle_sigint(int sig);
+void test_connection(int times);
 
 // global variables
 int sockfd;
@@ -20,23 +21,31 @@ int sockfd;
     cmd arguments: 
     [1] adress - string
     [2] port - number
+    [3] test - number
 */
 int main(int argc, char *argv[]) {
-    int port;
+    int port, test;
     char command[BUFF_SIZE];
     coordinates data = {0};
 
-    if (argc != 3)
+    if (argc != 4)
     {
         printf("Invalid args count!\n");
         exit(0);
     }
 
-    setup_sigaction();
-
     port = atoi(argv[2]);
 
     sockfd = setup_connection(argv[1], port);
+
+    test = atoi(argv[3]);
+
+    if (test > 0) {
+        test_connection(test);
+        return 0;
+    }
+
+    setup_sigaction();
 
     for (;;) {
         memset(&command, 0, sizeof(command));
@@ -66,12 +75,26 @@ int main(int argc, char *argv[]) {
 
 // private function definitions
 
+void test_connection(int times) {
+    int i;
+    coordinates data = {0};
+
+    for (i = 0; i < times; i++) {
+        receive_struct(&data);
+        printf("-------------------\n");
+        printf("Received struct with values: x=%d, y=%d\n", data.x, data.y);
+        printf("-------------------\n");
+    }
+
+    end_communication();
+}
+
 void receive_struct(coordinates* data) {
     char buffer[BUFF_SIZE];
     uint32_t x, y;
     ssize_t len;
 
-    strcpy(buffer, "get");
+    strcpy(buffer, GET);
 
     client_send(sockfd, buffer, sizeof(buffer));
 
@@ -86,7 +109,7 @@ void receive_struct(coordinates* data) {
 void end_communication() {
     char buffer[BUFF_SIZE];
 
-    strcpy(buffer, "end");
+    strcpy(buffer, END);
 
     client_send(sockfd, buffer, sizeof(buffer));
 }
