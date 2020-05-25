@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <stdint.h>
 #include <arpa/inet.h>
+#include <time.h>
 #include "coordinates.h"
 #include "client.h"
 
@@ -76,15 +77,26 @@ int main(int argc, char *argv[]) {
 // private function definitions
 
 void test_connection(int times) {
+    clock_t start, end, total;
+    double time, average = 0;
     int i;
     coordinates data = {0};
 
+    total = clock();
+
     for (i = 0; i < times; i++) {
+        start = clock();
         receive_struct(&data);
-        printf("-------------------\n");
-        printf("Received struct with values: x=%d, y=%d\n", data.x, data.y);
-        printf("-------------------\n");
+        end = clock();
+        time = ((double) (end - start)) / CLOCKS_PER_SEC;
+        average += time;
     }
+
+    average /= times;
+    end = clock();
+    time = ((double) (end - total)) / CLOCKS_PER_SEC;
+    printf("Average time %f secs\n", average);
+    printf("Total time: %f secs\n", time);
 
     end_communication();
 }

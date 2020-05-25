@@ -96,7 +96,6 @@ int start_listening(int serverfd, int time, int thread_pool_size) {
 }
 
 // private function definitions
-
 void *worker(void *input) {
     while(1) {
         int *pclient;
