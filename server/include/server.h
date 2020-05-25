@@ -6,6 +6,7 @@
 #define BUFF_SIZE 4
 #define END "end"
 #define GET "get"
+#define MAX_CONN 5
 
 typedef enum Status_Enum {
     E_SUCCESS = 1,
@@ -19,6 +20,6 @@ typedef enum Status_Enum {
 
 // functions
 int create_server(int port, int* serverfd);
-int start_listening(int serverfd, int maxConn);
+int start_listening(int serverfd, int time, int thread_pool_size);
 
 #endif

@@ -22,17 +22,21 @@ int sockfd;
     [2] port - number
 */
 int main(int argc, char *argv[]) {
+    int port;
     char command[BUFF_SIZE];
     coordinates data = {0};
 
     if (argc != 3)
     {
         printf("Invalid args count!\n");
+        exit(0);
     }
 
     setup_sigaction();
 
-    sockfd = setup_connection(argv[1], atoi(argv[2]));
+    port = atoi(argv[2]);
+
+    sockfd = setup_connection(argv[1], port);
 
     for (;;) {
         memset(&command, 0, sizeof(command));

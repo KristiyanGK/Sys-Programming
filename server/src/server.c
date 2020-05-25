@@ -9,17 +9,21 @@
 #include <errno.h>
 #include "server.h"
 #include "coordinates.h"
+#include "queue.h"
 
 // private functions declarations
 int random_int();
-void *handle_connection(void* input);
+void handle_connection(int clientfd);
+void *worker(void *input);
+void *update_coordinates(void *input);
 
 // global variables
 coordinates data = {0};
+pthread_t *thread_pool;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t condition_var = PTHREAD_COND_INITIALIZER;
 
 // public functions definitions
-
 int create_server(int port, int *serverfd) {
     struct sockaddr_in serveraddr = {0};
 
@@ -48,17 +52,20 @@ int create_server(int port, int *serverfd) {
     return E_SUCCESS;
 }
 
-int start_listening(int serverfd, int maxConn) {
-    int len, connfd;
+int start_listening(int serverfd, int time, int thread_pool_size) {
+    int len, clientfd, i;
     struct sockaddr_in cli;
-    pthread_t thread;
+    pthread_t coordinates_thread;
 
-    if (pthread_mutex_init(&lock, NULL) != 0) {
-        perror("");
-        return E_FAILED_MUTEX_INIT;
+    thread_pool = (pthread_t*) malloc(sizeof(pthread_t) * thread_pool_size);
+
+    for (i = 0; i < thread_pool_size; i++) {
+        pthread_create(&thread_pool[i], NULL, worker, NULL);
     }
+    
+    pthread_create(&coordinates_thread, NULL, update_coordinates, (void*)&time);
 
-    if((listen(serverfd, maxConn)) != 0) {
+    if((listen(serverfd, MAX_CONN)) != 0) {
         perror("");
         return E_FAILED_LISTENING;
     }
@@ -67,40 +74,68 @@ int start_listening(int serverfd, int maxConn) {
 
     printf("Server is listening!\n");
 
-    for(;;) {
-        connfd = accept(serverfd, (struct sockaddr*)&cli, &len);
+    while(1) {
+        clientfd = accept(serverfd, (struct sockaddr*)&cli, &len);
 
-        if (connfd < 0) {
+        if (clientfd < 0) {
             perror("");
             return E_FAILED_SERVER_ACCEPT;
         }
 
-        printf("Received Request from %d\n", connfd);
+        printf("Received Request from %d\n", clientfd);
 
-        pthread_create(&thread, NULL, handle_connection, (void *)&connfd);
+        int *pclientfd = (int*) malloc(sizeof(int));
+        *pclientfd = clientfd;
+        pthread_mutex_lock(&lock);
+        enqueue(pclientfd);
+        pthread_cond_signal(&condition_var);
+        pthread_mutex_unlock(&lock);
     }
-
-    pthread_mutex_destroy(&lock);
 
     return E_SUCCESS;
 }
 
 // private function definitions
 
-void *handle_connection(void* input) {
-    int clientfd = *((int*)input);
+void *worker(void *input) {
+    while(1) {
+        int *pclient;
+        pthread_mutex_lock(&lock); 
+
+        if ((pclient = dequeue()) == NULL) 
+        {
+            pthread_cond_wait(&condition_var, &lock);
+
+            pclient = dequeue();
+        }
+        
+        pthread_mutex_unlock(&lock);
+
+        if (pclient != NULL)
+        {
+            handle_connection(*pclient);
+            free(pclient);
+        }
+    }
+}
+
+void *update_coordinates(void *input) {
+    int time = *(int*)input;
+    while (1) {
+        data.x = random_int();
+        data.y = random_int();
+        sleep(time);
+    }
+}
+
+void handle_connection(int clientfd) {
     uint32_t xSend, ySend;
     char buffer[BUFF_SIZE] = {0};
 
     for(;;) {
         recv(clientfd, buffer, BUFF_SIZE, 0);
 
-        if (strcmp(buffer, GET) == 0) {
-            pthread_mutex_lock(&lock);
-            data.x = random_int();
-            data.y = random_int();
-            pthread_mutex_unlock(&lock);
-            
+        if (strcmp(buffer, GET) == 0) {            
             printf("Server sending struct with values: x=%d, y=%d to %d\n", data.x, data.y, clientfd);
 
             xSend = htonl(data.x);
